@@ -11,23 +11,31 @@ async function scrapeFunStuffToDo() {
 
     const funStuff = [];
 
-    // Loop through all links on the page
-    $("a").each((i, el) => {
-      const name = $(el).text().trim();
-      const url = $(el).attr("href");
+    // Find the exact h2
+    const funHeader = $("h2").filter((i, el) =>
+      $(el).text().toLowerCase().includes("fun stuff to do")
+    );
 
-      // Filter: only keep real external vendor links
-      if (
-        name &&
-        url &&
-        url.startsWith("http") &&
-        !url.includes("hellbenthitchings.com")
-      ) {
-        funStuff.push({
-          name,
-          website: url,
-        });
-      }
+    if (!funHeader.length) {
+      console.log("❌ Could not find Fun Stuff header");
+      return;
+    }
+
+    // Grab EVERYTHING after that header
+    const sectionContent = funHeader.nextAll();
+
+    sectionContent.each((i, el) => {
+      // Stop if we hit another major section (like another h2)
+      if (el.tagName === "h2") return false;
+
+      $(el).find("a").each((i, link) => {
+        const name = $(link).text().trim();
+        const url = $(link).attr("href");
+
+        if (name && url && url.startsWith("http")) {
+          funStuff.push({ name, website: url });
+        }
+      });
     });
 
     // Remove duplicates
@@ -35,13 +43,12 @@ async function scrapeFunStuffToDo() {
       new Map(funStuff.map(v => [v.website, v])).values()
     );
 
-    // Save to JSON file
     fs.writeFileSync(
       "funStuff.json",
       JSON.stringify(uniqueStuff, null, 2)
     );
 
-    console.log(`✅ Scraped ${uniqueStuff.length} fun things to do`);
+    console.log(`✅ Scraped ${uniqueStuff.length} Fun Stuff items`);
   } catch (err) {
     console.error("Error scraping:", err);
   }
